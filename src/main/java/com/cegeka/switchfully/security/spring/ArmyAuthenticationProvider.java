@@ -2,6 +2,7 @@ package com.cegeka.switchfully.security.spring;
 
 import com.cegeka.switchfully.security.external.authentication.ExternalAuthenticaton;
 import com.cegeka.switchfully.security.external.authentication.FakeAuthenticationService;
+import com.cegeka.switchfully.security.rest.ArmyRole;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -9,6 +10,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
+
+import java.util.stream.Collectors;
+
+import static com.cegeka.switchfully.security.rest.ArmyFeature.getFeaturesForRole;
 
 @Component
 public class ArmyAuthenticationProvider implements AuthenticationProvider {
@@ -20,7 +25,11 @@ public class ArmyAuthenticationProvider implements AuthenticationProvider {
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         ExternalAuthenticaton user = fakeAuthenticationService.getUser(authentication.getPrincipal().toString(), authentication.getCredentials().toString());
         if(user != null){
-            return new ArmyAuthentication(user.getUsername(), user.getPassword(), user.getRoles());
+            return new ArmyAuthentication(user.getUsername(),
+                    user.getPassword(),
+                    user.getRoles().stream().flatMap(role ->
+                            getFeaturesForRole(ArmyRole.valueOf(role)).stream().map(Enum::name)
+                    ).collect(Collectors.toList()));
         }
         throw new BadCredentialsException("BAD BAD NOT GOOD");
     }
